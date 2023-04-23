@@ -1,20 +1,29 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import './App.css';
 import Alert from './components/Alert';
 import ExpenseForm from './components/ExpenseForm';
 import ExpenseList from './components/ExpenseList';
 import { v4 as uuidv4 } from 'uuid'
 
-const initialExpenses = [
-  {id: uuidv4(), charge:"rent", amount:1600},
-  {id: uuidv4(), charge:"car payment", amount:400},
-  {id: uuidv4(), charge:"credit card bill", amount:1200}
-]
+
+// const initialExpenses = [
+//   {id: uuidv4(), charge:"rent", amount:1600},
+//   {id: uuidv4(), charge:"car payment", amount:400},
+//   {id: uuidv4(), charge:"credit card bill", amount:1200}
+// ]
+const initialExpenses = localStorage.getItem('expenses')? JSON.parse(localStorage.getItem('expenses')) : []
 function App() {
   const [expenses, setExpenses] = useState(initialExpenses)
   const [charge, setCharge] = useState('')
   const [amount, setAmount] = useState('')
   const [alert, setAlert] = useState({show: false})
+  const [edit, setEdit] = useState(false)
+
+  const [id, setId] = useState(0)
+
+  useEffect(()=>{
+    localStorage.setItem('expenses', JSON.stringify(expenses))
+  }, [expenses])
 
   const handleCharge = e => {
     setCharge(e.target.value)
@@ -31,9 +40,19 @@ function App() {
   const handleSubmit = e => {
     e.preventDefault()
     if(charge !== '' && amount > 0){
-      const singleExpense = {id: uuidv4(), charge, amount} // same as charge:charge, amount:amount
+      if(edit){
+        let tempExpenses = expenses.map(item => {
+          return item.id === id? {...item, charge, amount} : item
+        })
+        setExpenses(tempExpenses)
+        setEdit(false)
+        handleAlert({type:'success', text: 'item edited'})
+      } else {
+        const singleExpense = {id: uuidv4(), charge, amount} // same as charge:charge, amount:amount
       setExpenses([...expenses, singleExpense])
       handleAlert({type:'success', text: 'item added'})
+      }
+      
       setCharge('')
       setAmount('')
 
@@ -51,6 +70,13 @@ function App() {
     handleAlert({type:'danger', text: `item deleted`})
   }
   const handleEdit = (id) => {
+    let expense = expenses.find((item) => item.id === id)
+    let {charge, amount} = expense
+    setCharge(charge)
+    setAmount(amount)
+    setEdit(true)
+    setId(id)
+
   }
   return (
     <>
@@ -63,7 +89,8 @@ function App() {
       amount={amount} 
       handleAmount={handleAmount} 
       handleCharge={handleCharge} 
-      handleSubmit={handleSubmit}/>
+      handleSubmit={handleSubmit}
+      edit={edit}/>
       <ExpenseList expenses={expenses} handleDelete={handleDelete} handleEdit={handleEdit} clearItems={clearItems}/>
       </main>
       <h1>
